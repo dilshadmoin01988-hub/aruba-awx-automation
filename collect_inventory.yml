@@ -2,6 +2,7 @@
 - name: Collect Aruba CX Inventory
   hosts: aruba_switches
   gather_facts: false
+  ignore_unreachable: true
 
   vars:
     ansible_connection: network_cli
@@ -9,15 +10,57 @@
     ansible_command_timeout: 60
 
   tasks:
-    - name: Collect switch information
+
+    - name: Run show version
       arubanetworks.aoscx.aoscx_command:
         commands:
           - show version
-          - show system
-          - show inventory
-          - show lldp neighbor-info
       register: output
 
-    - name: Display switch information
+    - name: Extract device information
+      ansible.builtin.set_fact:
+        device_version: >-
+          {{
+            (output.stdout[0]
+            | regex_findall('(?m)^Version\\s*:\\s*(\\S+)')
+            | first)
+            | default('N/A')
+          }}
+
+        active_image: >-
+          {{
+            (output.stdout[0]
+            | regex_findall('(?m)^Active Image\\s*:\\s*(\\S+)')
+            | first)
+            | default('N/A')
+          }}
+
+        device_status: >-
+          {{
+            'Reachable'
+            if output is defined
+            and not (output.failed | default(false))
+            and not (output.unreachable | default(false))
+            else 'Unreachable'
+          }}
+
+    - name: Display clean inventory report
       ansible.builtin.debug:
-        var: output.stdout
+        msg: |
+          
+          ==================================================================================================
+          ARUBA CX DEVICE INVENTORY REPORT
+          ==================================================================================================
+          DEVICE                           MANAGEMENT IP       AOS-CX VERSION       ACTIVE IMAGE    STATUS
+          --------------------------------------------------------------------------------------------------
+          {% for host in ansible_play_hosts_all %}
+          {{ "%-32s %-19s %-20s %-15s %-12s" | format(
+              host,
+              hostvars[host].ansible_host | default('N/A'),
+              hostvars[host].device_version | default('N/A'),
+              hostvars[host].active_image | default('N/A'),
+              hostvars[host].device_status | default('Unreachable')
+          ) }}
+          {% endfor %}
+          ==================================================================================================
+      run_once: true
