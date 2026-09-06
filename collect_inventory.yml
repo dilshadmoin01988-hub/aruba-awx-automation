@@ -3,13 +3,21 @@
   hosts: aruba_switches
   gather_facts: false
 
+  vars:
+    ansible_connection: network_cli
+    ansible_network_os: arubanetworks.aoscx.aoscx
+    ansible_command_timeout: 60
+
   tasks:
-    - name: Run show version
+    - name: Collect switch information
       arubanetworks.aoscx.aoscx_command:
         commands:
           - show version
+          - show system
+          - show inventory
+          - show lldp neighbor-info
       register: output
 
-    - name: Display output
+    - name: Display switch information
       ansible.builtin.debug:
         var: output.stdout
