@@ -1,15 +1,9 @@
 ---
----
-collections:
-  - name: arubanetworks.aoscx
-    version: "4.5.1"
-    
 - name: Collect Aruba CX Inventory
   hosts: aruba_switches
   gather_facts: false
 
   tasks:
-
     - name: Run show version
       arubanetworks.aoscx.aoscx_command:
         commands:
