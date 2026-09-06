@@ -1,0 +1,16 @@
+---
+- name: Collect Aruba CX Inventory
+  hosts: aruba_switches
+  gather_facts: false
+
+  tasks:
+
+    - name: Run show version
+      arubanetworks.aoscx.aoscx_command:
+        commands:
+          - show version
+      register: output
+
+    - name: Display output
+      ansible.builtin.debug:
+        var: output.stdout
